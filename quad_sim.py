@@ -51,12 +51,13 @@ def Single_Point2Point():
 
 def Multi_Point2Point():
     # Set goals to go to
+    FORMATIONS = json.load(open('quad_sim/formations.json'))
     GOALS_1 = [(-1,-1,4),(1,1,2)]
     GOALS_2 = [(1,-1,2),(-1,1,4)]
     # Define the quadcopters
-    QUADCOPTERS=json.load('quadcopters.json')
+    QUADCOPTERS=json.load(open('quad_sim/quadcopters.json'))
     # Controller parameters
-    CONTROLLER_1_PARAMETERS = {'Motor_limits':[4000,9000],
+    CONTROLLER_PARAMETERS = {'Motor_limits':[4000,9000],
                         'Tilt_limits':[-10,10],
                         'Yaw_Control_Limits':[-900,900],
                         'Z_XY_offset':500,
@@ -65,40 +66,37 @@ def Multi_Point2Point():
                         'Yaw_Rate_Scaler':0.18,
                         'Angular_PID':{'P':[22000,22000,1500],'I':[0,0,1.2],'D':[12000,12000,0]},
                         }
-    CONTROLLER_2_PARAMETERS = {'Motor_limits':[4000,9000],
-                        'Tilt_limits':[-10,10],
-                        'Yaw_Control_Limits':[-900,900],
-                        'Z_XY_offset':500,
-                        'Linear_PID':{'P':[300,300,7000],'I':[0.04,0.04,4.5],'D':[450,450,5000]},
-                        'Linear_To_Angular_Scaler':[1,1,0],
-                        'Yaw_Rate_Scaler':0.18,
-                        'Angular_PID':{'P':[22000,22000,1500],'I':[0,0,1.2],'D':[12000,12000,0]},
-                        }
-
+    # Create enough controller parameters
+    ctrl_params = [CONTROLLER_PARAMETERS.copy() for q in QUADCOPTERS]
     # Catch Ctrl+C to stop threads
     signal.signal(signal.SIGINT, signal_handler)
     # Make objects for quadcopter, gui and controllers
     gui_object = gui.GUI(quads=QUADCOPTERS)
     quad = quadcopter.Quadcopter(quads=QUADCOPTERS)
-    ctrl1 = controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,quad.set_motor_speeds,params=CONTROLLER_1_PARAMETERS,quad_identifier='q1')
-    ctrl2 = controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,quad.set_motor_speeds,params=CONTROLLER_2_PARAMETERS,quad_identifier='q2')
+    controllers = [
+        controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,quad.set_motor_speeds,params=param,quad_identifier=q) for q,param in zip(QUADCOPTERS, ctrl_params)
+    ]
+    # ctrl1 = controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,quad.set_motor_speeds,params=CONTROLLER_1_PARAMETERS,quad_identifier='q1')
+    # ctrl2 = controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,quad.set_motor_speeds,params=CONTROLLER_2_PARAMETERS,quad_identifier='q2')
     # Start the threads
     quad.start_thread(dt=QUAD_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
-    ctrl1.start_thread(update_rate=CONTROLLER_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
-    ctrl2.start_thread(update_rate=CONTROLLER_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
+    for ctrl in controllers:
+        ctrl.start_thread(update_rate=CONTROLLER_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
     # Update the GUI while switching between destination poitions
     while(run==True):
-        for goal1,goal2 in zip(GOALS_1,GOALS_2):
-            ctrl1.update_target(goal1)
-            ctrl2.update_target(goal2)
-            for i in range(100):
-                for key in QUADCOPTERS:
-                    gui_object.quads[key]['position'] = quad.get_position(key)
-                    gui_object.quads[key]['orientation'] = quad.get_orientation(key)
-                gui_object.update()
+        key = input("Which formation would you like to make?\noptions: {}\n:".format([str(key) for key in FORMATIONS.keys()]))
+        while key not in FORMATIONS.keys():
+            key = input("Did not recognize input. Please select an option below...\noptions: {}\n:".format([str(key) for key in FORMATIONS.keys()]))
+        for q,ctrl in zip(QUADCOPTERS,controllers):
+            ctrl.update_target(tuple(FORMATIONS[key][q]))
+        for i in range(300):
+            for key in QUADCOPTERS:
+                gui_object.quads[key]['position'] = quad.get_position(key)
+                gui_object.quads[key]['orientation'] = quad.get_orientation(key)
+            gui_object.update()
     quad.stop_thread()
-    ctrl1.stop_thread()
-    ctrl2.stop_thread()
+    for ctrl in controllers:
+        ctrl.stop_thread()
 
 def Single_Velocity():
     # Set goals to go to
