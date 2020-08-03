@@ -29,7 +29,7 @@ class Quadcopter():
         self.g = gravity
         self.b = b
         self.thread_object = None
-        self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
+        self.ode = scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
         self.time = datetime.datetime.now()
         for key in self.quads:
             self.quads[key]['state'] = np.zeros(12)
@@ -70,7 +70,15 @@ class Quadcopter():
         state_dot[1] = self.quads[key]['state'][4]
         state_dot[2] = self.quads[key]['state'][5]
         # The acceleration
-        x_dotdot = np.array([0,0,-self.quads[key]['weight']*self.g]) + np.dot(self.rotation_matrix(self.quads[key]['state'][6:9]),np.array([0,0,(self.quads[key]['m1'].thrust + self.quads[key]['m2'].thrust + self.quads[key]['m3'].thrust + self.quads[key]['m4'].thrust)]))/self.quads[key]['weight']
+        x_dotdot = np.array([0,0,-self.quads[key]['weight']*self.g]) + \
+            np.dot(self.rotation_matrix(self.quads[key]['state'][6:9]), \
+                np.array([0,0,( \
+                    self.quads[key]['m1'].thrust + \
+                    self.quads[key]['m2'].thrust + \
+                    self.quads[key]['m3'].thrust + \
+                    self.quads[key]['m4'].thrust)] \
+                ) \
+            )/self.quads[key]['weight']
         state_dot[3] = x_dotdot[0]
         state_dot[4] = x_dotdot[1]
         state_dot[5] = x_dotdot[2]
@@ -135,7 +143,7 @@ class Quadcopter():
                 last_update = self.time
 
     def start_thread(self,dt=0.002,time_scaling=1):
-        self.thread_object = threading.Thread(target=self.thread_run,args=(dt,time_scaling))
+        self.thread_object = threading.Thread(target=self.thread_run,args=(dt,time_scaling), daemon=True)
         self.thread_object.start()
 
     def stop_thread(self):

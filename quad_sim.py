@@ -2,6 +2,7 @@ import quadcopter,gui,controller
 import signal
 import sys
 import argparse
+import json
 
 # Constants
 TIME_SCALING = 1.0 # Any positive number(Smaller is faster). 1.0->Real Time, 0.0->Run as fast as possible
@@ -40,10 +41,11 @@ def Single_Point2Point():
         for goal,y in zip(GOALS,YAWS):
             ctrl.update_target(goal)
             ctrl.update_yaw_target(y)
-            for i in range(300):
+            for i in range(100):
                 gui_object.quads['q1']['position'] = quad.get_position('q1')
                 gui_object.quads['q1']['orientation'] = quad.get_orientation('q1')
                 gui_object.update()
+        print('Completed loop {}'.format(i))
     quad.stop_thread()
     ctrl.stop_thread()
 
@@ -52,8 +54,7 @@ def Multi_Point2Point():
     GOALS_1 = [(-1,-1,4),(1,1,2)]
     GOALS_2 = [(1,-1,2),(-1,1,4)]
     # Define the quadcopters
-    QUADCOPTERS={'q1':{'position':[1,0,4],'orientation':[0,0,0],'L':0.3,'r':0.1,'prop_size':[10,4.5],'weight':1.2},
-        'q2':{'position':[-1,0,4],'orientation':[0,0,0],'L':0.15,'r':0.05,'prop_size':[6,4.5],'weight':0.7}}
+    QUADCOPTERS=json.load('quadcopters.json')
     # Controller parameters
     CONTROLLER_1_PARAMETERS = {'Motor_limits':[4000,9000],
                         'Tilt_limits':[-10,10],
@@ -90,7 +91,7 @@ def Multi_Point2Point():
         for goal1,goal2 in zip(GOALS_1,GOALS_2):
             ctrl1.update_target(goal1)
             ctrl2.update_target(goal2)
-            for i in range(150):
+            for i in range(100):
                 for key in QUADCOPTERS:
                     gui_object.quads[key]['position'] = quad.get_position(key)
                     gui_object.quads[key]['orientation'] = quad.get_orientation(key)
