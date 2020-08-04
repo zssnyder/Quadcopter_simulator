@@ -52,8 +52,6 @@ def Single_Point2Point():
 def Multi_Point2Point():
     # Set goals to go to
     FORMATIONS = json.load(open('quad_sim/formations.json'))
-    GOALS_1 = [(-1,-1,4),(1,1,2)]
-    GOALS_2 = [(1,-1,2),(-1,1,4)]
     # Define the quadcopters
     QUADCOPTERS=json.load(open('quad_sim/quadcopters.json'))
     # Controller parameters
@@ -87,6 +85,7 @@ def Multi_Point2Point():
         key = input("Which formation would you like to make?\noptions: {}\n:".format([str(key) for key in FORMATIONS.keys()]))
         while key not in FORMATIONS.keys():
             key = input("Did not recognize input. Please select an option below...\noptions: {}\n:".format([str(key) for key in FORMATIONS.keys()]))
+        # TODO: Write a smart algorithm to set targets of nearest drones
         for q,ctrl in zip(QUADCOPTERS,controllers):
             ctrl.update_target(tuple(FORMATIONS[key][q]))
         for i in range(300):
