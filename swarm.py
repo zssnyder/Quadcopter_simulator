@@ -105,8 +105,8 @@ class Swarm():
     def set_orientation(self,drone_key,orientation):
         self.drones[drone_key].set_orientation(orientation)
 
-    def get_time(self):
-        return self.time
+    def get_time(self, drone_key):
+        return self.drones[drone_key].get_time()
 
     # def thread_run(self,dt,time_scaling):
     #     rate = time_scaling*dt

@@ -77,10 +77,10 @@ class Controller_PID_Point2Point():
 
     def thread_run(self,update_rate,time_scaling):
         update_rate = update_rate*time_scaling
-        last_update = self.get_time()
+        last_update = self.get_time(self.quad_identifier)
         while(self.run==True):
             time.sleep(0)
-            self.time = self.get_time()
+            self.time = self.get_time(self.quad_identifier)
             if (self.time - last_update).total_seconds() > update_rate:
                 self.update()
                 last_update = self.time
