@@ -5,6 +5,7 @@ import scipy.integrate
 import time
 import datetime
 import threading
+import logging
 
 class Swarm():
     # State space representation: [x y z x_dot y_dot z_dot theta phi gamma theta_dot phi_dot gamma_dot]
@@ -80,8 +81,8 @@ class Swarm():
     #         self.drones[key].state[2] = max(0,self.drones[key].state[2])
 
     def set_motor_speeds(self,drone_key,speeds):
-        logger = logging.getLogger()
-        logger.debug('Set motor speeds for: {}, speeds: {}'.format(drone_key, speeds))
+        # logger = logging.getLogger()
+        # logger.debug('Set motor speeds for: {}, speeds: {}'.format(drone_key, speeds))
         self.drones[drone_key].set_motor_speeds(speeds)
 
     def get_position(self,drone_key):

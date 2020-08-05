@@ -7,11 +7,11 @@ import logging
 
 # Constants
 TIME_SCALING = 1.0 # Any positive number(Smaller is faster). 1.0->Real Time, 0.0->Run as fast as possible
-QUAD_DYNAMICS_UPDATE = 0.002 # seconds
-CONTROLLER_DYNAMICS_UPDATE = 0.005 # seconds
+QUAD_DYNAMICS_UPDATE = 0.02 # seconds
+CONTROLLER_DYNAMICS_UPDATE = 0.05 # seconds
 run = True
 
-logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
+# logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
 
 def Swarm_Formations():
     # Set goals to go to
@@ -33,8 +33,8 @@ def Swarm_Formations():
     # Catch Ctrl+C to stop threads
     signal.signal(signal.SIGINT, signal_handler)
     # Make objects for quadcopter, gui and controllers
-    gui_object = swarm_gui.GUI(drones=QUADCOPTERS)
     s = swarm.Swarm(drones=QUADCOPTERS)
+    gui_object = swarm_gui.GUI(drones=QUADCOPTERS, swarm=s)
     controllers = [
         controller.Controller_PID_Point2Point( \
             s.get_state, \
@@ -61,11 +61,12 @@ def Swarm_Formations():
             ctrl.update_target(tuple(FORMATIONS[key][q]))
         
         # TODO: Rewrite gui updates to make them more smooth
-        for i in range(300):
-            for key in QUADCOPTERS:
-                gui_object.drones[key]['position'] = s.get_position(key)
-                gui_object.drones[key]['orientation'] = s.get_orientation(key)
-            gui_object.update()
+        gui_object.animate()
+        # for i in range(300):
+        #     for key in QUADCOPTERS:
+        #         gui_object.drones[key]['position'] = s.get_position(key)
+        #         gui_object.drones[key]['orientation'] = s.get_orientation(key)
+        #     gui_object.update()
     s.stop_threads()
     for ctrl in controllers:
         ctrl.stop_thread()
@@ -73,7 +74,7 @@ def Swarm_Formations():
 def parse_args():
     parser = argparse.ArgumentParser(description="Quadcopter Simulator")
     parser.add_argument("--sim", help='single_p2p, multi_p2p or single_velocity', default='formations')
-    parser.add_argument("--time_scale", type=float, default=-1.0, help='Time scaling factor. 0.0:fastest,1.0:realtime,>1:slow, ex: --time_scale 0.1')
+    parser.add_argument("--time_scale", type=float, default=-0.0, help='Time scaling factor. 0.0:fastest,1.0:realtime,>1:slow, ex: --time_scale 0.1')
     parser.add_argument("--quad_update_time", type=float, default=0.0, help='delta time for quadcopter dynamics update(seconds), ex: --quad_update_time 0.002')
     parser.add_argument("--controller_update_time", type=float, default=0.0, help='delta time for controller update(seconds), ex: --controller_update_time 0.005')
     return parser.parse_args()
