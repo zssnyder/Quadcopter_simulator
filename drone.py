@@ -4,7 +4,14 @@ import scipy.integrate
 import time
 import datetime
 import threading
+import multiprocessing as mp
 import logging
+import json
+import sys
+
+# Constants
+TIME_SCALING = 1.0 # Any positive number(Smaller is faster). 1.0->Real Time, 0.0->Run as fast as possible
+QUAD_DYNAMICS_UPDATE = 0.02 # seconds
 
 class Propeller():
     def __init__(self, prop_dia, prop_pitch, thrust_unit='N'):
@@ -25,15 +32,12 @@ class Propeller():
 class Drone():
     # State space representation: [x y z x_dot y_dot z_dot theta phi gamma theta_dot phi_dot gamma_dot]
     # From Quadcopter Dynamics, Simulation, and Control by Andrew Gibiansky
-    def __init__(self,key,drone,swarm,gravity=9.81,b=0.0245):
+    def __init__(self,key,ode,config,gravity=9.81,b=0.0245):
         self.key = key
-        self.config = drone
-        self.swarm = swarm
+        self.config = config[key]
         self.g = gravity
         self.b = b
-        self.thread_object = None
-        self.lock = None
-        self.ode = swarm.ode
+        self.ode = ode
         self.time = datetime.datetime.now()
 
         self.state = np.zeros(12)
@@ -69,45 +73,6 @@ class Drone():
     def wrap_angle(self,val):
         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
-    # def state_dot(self, time, state):
-    #     state_dot = np.zeros(12)
-    #     # The velocities(t+1 x_dots equal the t x_dots)
-    #     state_dot[0] = self.state[3]
-    #     state_dot[1] = self.state[4]
-    #     state_dot[2] = self.state[5]
-    #     # The acceleration
-    #     x_dotdot = np.array([0,0,-self.config['weight']*self.g]) + \
-    #         np.dot(self.rotation_matrix(self.state[6:9]), \
-    #             np.array([0,0,( \
-    #                 self.props['m1'].thrust + \
-    #                 self.props['m2'].thrust + \
-    #                 self.props['m3'].thrust + \
-    #                 self.props['m4'].thrust)] \
-    #             ) \
-    #         )/self.config['weight']
-    #     state_dot[3] = x_dotdot[0]
-    #     state_dot[4] = x_dotdot[1]
-    #     state_dot[5] = x_dotdot[2]
-    #     # The angular rates(t+1 theta_dots equal the t theta_dots)
-    #     state_dot[6] = self.state[9]
-    #     state_dot[7] = self.state[10]
-    #     state_dot[8] = self.state[11]
-    #     # The angular accelerations
-    #     omega = self.state[9:12]
-    #     tau = np.array([ \
-    #         self.config['L']*(self.props['m1'].thrust-self.props['m3'].thrust), \
-    #         self.config['L']*(self.props['m2'].thrust-self.props['m4'].thrust), \
-    #         self.b*(\
-    #             self.props['m1'].thrust-\
-    #             self.props['m2'].thrust+\
-    #             self.props['m3'].thrust-\
-    #             self.props['m4'].thrust)])
-    #     omega_dot = np.dot(self.config['invI'], (tau - np.cross(omega, np.dot(self.config['I'],omega))))
-    #     state_dot[9] = omega_dot[0]
-    #     state_dot[10] = omega_dot[1]
-    #     state_dot[11] = omega_dot[2]
-    #     return state_dot
-
     def update(self, dt):
         if self.lock is not None:
             self.lock.acquire()
@@ -115,14 +80,12 @@ class Drone():
             self.state = self.ode.integrate(self.ode.t + dt)
             self.lock.release()
         else:
-            self.ode.set_initial_value(self.state,0).set_f_params(self.key)
+            self.ode.set_initial_value(self.state,0).set_f_params(self.state)
             self.state = self.ode.integrate(self.ode.t + dt)
         self.state[6:9] = self.wrap_angle(self.state[6:9])
         self.state[2] = max(0,self.state[2])
 
     def set_motor_speeds(self,speeds):
-        logger = logging.getLogger()
-        logger.debug('Set motor speeds for: {}, speeds: {}'.format(self.key, speeds))
         self.props['m1'].set_speed(speeds[0])
         self.props['m2'].set_speed(speeds[1])
         self.props['m3'].set_speed(speeds[2])
@@ -152,6 +115,7 @@ class Drone():
     def get_time(self):
         return self.time
 
+
     def thread_run(self,dt,time_scaling):
         rate = time_scaling*dt
         last_update = self.time
@@ -170,3 +134,6 @@ class Drone():
 
     def stop_thread(self):
         self.run = False
+
+
+
