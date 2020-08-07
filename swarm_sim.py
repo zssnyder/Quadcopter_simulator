@@ -11,7 +11,7 @@ QUAD_DYNAMICS_UPDATE = 0.02 # seconds
 CONTROLLER_DYNAMICS_UPDATE = 0.05 # seconds
 run = True
 
-# logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
 
 def Swarm_Formations():
     # Set goals to go to
