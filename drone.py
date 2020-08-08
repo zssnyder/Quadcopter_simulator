@@ -8,6 +8,8 @@ import multiprocessing as mp
 import logging
 import json
 import sys
+# Local files
+import message
 
 # Constants
 TIME_SCALING = 1.0 # Any positive number(Smaller is faster). 1.0->Real Time, 0.0->Run as fast as possible
@@ -213,14 +215,30 @@ class Drone():
             try:
                 msg = sys.stdin.readline()
                 q.put(msg)
-            except OSError as error:
-                pass
         
     def handle_msgs(self, q):
         '''Handle messages from parent process'''
         while(self.run):
-            msg = q.get()
+            # Block until new message received
+            msgs:str = q.get()
             
+            msgs = json.loads(msgs, object_hook=message.as_message)
+
+            for msg in msgs:
+                if msg.cmd == 'get':
+                    if msg.param == 'position':
+                        msg.args = {"0": self.get_position()}
+                        send_msg(msg)
+                elif msg.cmd == 'set':
+                    if msg.param == 'position':
+                        self.set_position(msg.args["0"])
+
+            
+
+    def send_msg(self, msg):
+        try:
+            sys.stdout.write(msg)
+        
 
 
 
